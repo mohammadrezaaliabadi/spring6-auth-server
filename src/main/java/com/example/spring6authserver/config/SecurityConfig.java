@@ -26,6 +26,7 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
@@ -37,10 +38,23 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.UUID;
+/*
+This is a minimal configuration for getting started quickly. To understand what each component is used for, see the following descriptions:
+
+1-A Spring Security filter chain for the Protocol Endpoints.
+2-A Spring Security filter chain for authentication.
+3-An instance of UserDetailsService for retrieving users to authenticate.
+4-An instance of RegisteredClientRepository for managing clients.
+5-An instance of com.nimbusds.jose.jwk.source.JWKSource for signing access tokens.
+6-An instance of java.security.KeyPair with keys generated on startup used to create the JWKSource above.
+7-An instance of JwtDecoder for decoding signed access tokens.
+8-An instance of AuthorizationServerSettings to configure Spring Authorization Server.
+* */
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    //1
     @Bean
     @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
@@ -63,6 +77,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+    //2
     @Bean
     @Order(2)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception{
@@ -76,7 +91,7 @@ public class SecurityConfig {
 
         return http.build();
     }
-
+    //3
     @Bean
     public UserDetailsService userDetailsService(){
         UserDetails userDetails = User.withDefaultPasswordEncoder()
@@ -87,6 +102,7 @@ public class SecurityConfig {
 
         return new InMemoryUserDetailsManager(userDetails);
     }
+    //4
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
@@ -104,6 +120,7 @@ public class SecurityConfig {
 
         return new InMemoryRegisteredClientRepository(oidcClient);
     }
+    //5
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
         KeyPair keyPair = generateRsaKey();
@@ -116,7 +133,7 @@ public class SecurityConfig {
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);
     }
-
+    //6
     private static KeyPair generateRsaKey() {
         KeyPair keyPair;
         try {
@@ -129,9 +146,16 @@ public class SecurityConfig {
         }
         return keyPair;
     }
-
+    //7
     @Bean
     public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
         return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
     }
+    //8
+    @Bean
+    public AuthorizationServerSettings authorizationServerSettings() {
+        return AuthorizationServerSettings.builder().build();
+    }
+
+
 }
